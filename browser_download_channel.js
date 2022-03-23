@@ -6,25 +6,6 @@ function sleep(milliseconds) {
   } while (currentDate - date < milliseconds);
 }
 
-function getAllLikesFromCoubCom(){
-coubjsons = []
-console.log("staring dump coubs metadata")
-console.log("downloading page: 1")
-total_pages = ajax_get("https://coub.com/api/v2/timeline/likes?all=true&order_by=date&page=1")
-console.log("total_pages:", total_pages["total_pages"])
-coubjsons = coubjsons.concat(total_pages["coubs"])
-console.log(coubjsons)
-sleep(1000);
-for (i=2;i<=total_pages["total_pages"];i++){
-   console.log("downloading page:", i)
-   coubs = ajax_get("https://coub.com/api/v2/timeline/likes?all=true&order_by=date&page="+i)
-   coubjsons = coubjsons.concat(coubs["coubs"])
-   sleep(1000);
-}
-console.log("script done! please copy object below and save it to file.json! Right click on object -> Copy object")
-console.log(coubjsons)
-console.save(coubjsons,"coubs.json")
-}
 
 function getAllCoubsFromChannel(channel_name, add_recoubs){
 coubjsons = []
@@ -51,7 +32,7 @@ for (i=1;i<=total_pages["total_pages"];i++){
 }
 console.log("script done! please copy object below and save it to file.json! Right click on object -> Copy object")
 console.log(coubjsons)
-console.save(coubjsons,"coubs.json")
+console.save(coubjsons, channel_name + ".json")
 }
 
 
@@ -95,6 +76,9 @@ function ajax_get(url) {
         a.dispatchEvent(e)
     }
 })(console)
-//getAllLikesFromCoubCom()
+
+// true = donwload coubs and recoubs from channel
+// false = donwload coubs only
 add_recoubs=true
-getAllCoubsFromChannel("official", add_recoubs)
+channel="official"
+getAllCoubsFromChannel(channel, add_recoubs)
