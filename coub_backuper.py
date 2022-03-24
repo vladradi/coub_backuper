@@ -5,17 +5,54 @@ import os
 import time
 import sys
 import config
+import json
+import urllib
+from optparse import OptionParser
 
 debug = False
+
+def printdebug(msg):
+    if debug:
+        print(msg)
+
+def parseChannelUrl(channelUrl):
+    channel = {}
+    url = channelUrl.rstrip(" ")
+    channelId = url.replace("https://coub.com/", "")
+    channel[channelId] = channelId
+    return channel
+
+usage = "usage: %prog [options] arg"
+parser = OptionParser(usage)
+parser.add_option("-u", "--url", dest="channelUrl", help="URL of the channel, default is None'", default=None)
+parser.add_option("-j", "--json", dest="jsonFile", help="JSON file with coubs, default is None'", default=None)
+parser.add_option("-t", "--type",  dest="type",  help="Type from from {coubs, reposts, all}, default is coubs", default="all")
+parser.add_option("-d", "--downloads",  dest="downloads",  help="Download folder for coubs", default=None)
+
+MAX_PAGES=200
+COUBS_PER_PAGE=25
+(options, args) = parser.parse_args()
+channelUrl = options.channelUrl
+jsonFile = options.jsonFile
+typeFilter = options.type
+if options.downloads is not None:
+    config.download_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), options.downloads)
 
 user_agent = config.user_agent
 download_folder = config.download_folder
 proxies = config.proxies
 
+printdebug("channelUrl=%s" % channelUrl)
+printdebug("jsonFile=%s" % jsonFile)
+printdebug("typeFilter=%s" % typeFilter)
+printdebug("downloadFolder=%s" % config.download_folder)
 
-def printdebug(msg):
-    if debug:
-        print(msg)
+if channelUrl is not None and len(channelUrl) > 10:
+    channels = parseChannelUrl(channelUrl)
+
+if options.channelUrl is None and options.jsonFile is None:
+    print("Missing arguments. Use --help to show options")
+    exit(1)
 
 
 def get_json_by_url_parsed(url):
@@ -124,9 +161,63 @@ def download_coub_from_coub_property_list(path_to_coub_json):
         time.sleep(1)
 
 
+def getJsonOfChannelPage(COUBS_PER_PAGE, timelineOfChannel, currentPage):
+    requestUrl = "%s?page=%s&per_page=%s" % (timelineOfChannel, currentPage, COUBS_PER_PAGE)
+    return getJsonFrom(requestUrl)
+
+
+def getJsonFrom(requestUrl):
+    try:
+        response = requests.get(requestUrl, proxies=proxies, headers={"User-Agent": user_agent})
+        if response.status_code == 200:
+            return json.loads(response.content.decode("utf-8"))
+    except urllib.HTTPError as httpError:
+        print("ERROR while reading %s : '%s'" % (requestUrl, httpError))
+    return None
+
+
+timelineApiUrl = "https://coub.com/api/v2/timeline/channel/"
+coubs_json = []
+
+for channel in channels.keys():
+    timelineOfChannel = "%s%s" % (timelineApiUrl, channel)
+    print("[INFO] Reading %s from channel %s" % (typeFilter, timelineOfChannel))
+    currentPage = 1
+    total_pages = 1
+    while (currentPage <= total_pages and int(currentPage) <= int(MAX_PAGES)):
+        # gets all coubs from current page
+        jsonObject = getJsonOfChannelPage(COUBS_PER_PAGE, timelineOfChannel, currentPage)
+        if jsonObject is None:
+            break  # skip not existing channels
+
+        total_pages = jsonObject["total_pages"]
+        coubs = jsonObject["coubs"]
+        if total_pages < MAX_PAGES:
+            print("[INFO] reading page %s of %s" % (currentPage, total_pages))
+        else:
+            print("[INFO] reading page %s of %s" % (currentPage, MAX_PAGES))
+
+        for coub in coubs:
+            if (typeFilter == "all" or typeFilter == "reposts") and coub["type"] == "Coub::Recoub":
+                coubs_json.append(coub)
+            if (typeFilter == "all" or typeFilter == "coubs") and coub["type"] == "Coub::Simple":
+                coubs_json.append(coub)
+
+        currentPage += 1
+        sys.stdout.flush()
+    print("[INFO] Found json with %s coubs" % len(coubs_json))
+
+if len(coubs_json) > 0:
+    resFilename = open('%s' % jsonFile, 'w')
+    formatted_json = json.dumps(coubs_json)
+    resFilename.write("%s" % formatted_json)
+    resFilename.close()
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: coub_backuper.py <path_to_json_with_coubs>")
+        print("Usage: coub_backuper.py -j <path_to_json_with_coubs>")
+        parser.print_help(sys.stderr)
         exit()
-    property_list_file_path = sys.argv[1]
+    print("[INFO] Starting download from file %s into %s" % (jsonFile, config.download_folder))
+    property_list_file_path = jsonFile
     download_coub_from_coub_property_list(property_list_file_path)
