@@ -2369,7 +2369,7 @@ window.getQueryParameters = function(str) {
         }
       }
       url = "/coubs/" + permalink + "/increment_views?" + ($.param(params));
-      $.post(url);
+      // $.post(url);
       return console.log("[INCREMENT_VIEW]", url);
     }
   };
@@ -3734,7 +3734,7 @@ window.getQueryParameters = function(str) {
         track_url += "?" + ($.param(params));
       }
       console.log("[GA TRACK] " + track_url);
-      ga('send', 'pageview', track_url);
+      // ga('send', 'pageview', track_url);
       return console.log("[DEBUG]", "pageview!", track_url);
     };
 
