@@ -29,7 +29,7 @@ Options:
                         URL of the channel, default is None'
   -j JSONFILE, --json=JSONFILE
                         JSON file with coubs, default is None'
-  -t TYPE, --type=TYPE  Type from from {coubs, reposts, all}, default is coubs
+  -t TYPE, --type=TYPE  Type from from {coubs, reposts, all}, default is all
   -d DOWNLOADS, --downloads=DOWNLOADS
                         Download folder for coubs
 ```
