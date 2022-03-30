@@ -49,6 +49,8 @@ printdebug("downloadFolder=%s" % config.download_folder)
 
 if channelUrl is not None and len(channelUrl) > 10:
     channels = parseChannelUrl(channelUrl)
+else:
+    channels = {}
 
 if options.channelUrl is None and options.jsonFile is None:
     print("Missing arguments. Use --help to show options")
@@ -68,6 +70,9 @@ def download_coub_from_json(json_coub, download_folder=download_folder):
     folder_save_to = os.path.join(download_folder, "[{0}]".format(json_coub["permalink"]))
     if not os.path.isdir(folder_save_to):
         os.makedirs(folder_save_to)
+    else:
+        print("Folder %s already exists" % folder_save_to)
+        return
 
     ls = os.listdir(folder_save_to)
     video = [s for s in ls if ".mp4" in s]
